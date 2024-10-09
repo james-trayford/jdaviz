@@ -6,9 +6,12 @@ from jdaviz.configs.cubeviz.plugins.mixins import WithSliceIndicator, WithSliceS
 from jdaviz.configs.default.plugins.viewers import JdavizViewerMixin
 from jdaviz.configs.specviz.plugins.viewers import SpecvizProfileView
 from jdaviz.core.freezable_state import FreezableBqplotImageViewerState
+from jdaviz.configs.cubeviz.plugins.cube_listener import CubeListenerData
+import numpy as np
+import sounddevice as sd
+from astropy import units as u
 
 __all__ = ['CubevizImageView', 'CubevizProfileView']
-
 
 @viewer_registry("cubeviz-image-viewer", label="Image 2D (Cubeviz)")
 class CubevizImageView(JdavizViewerMixin, WithSliceSelection, BqplotImageView):
@@ -30,6 +33,7 @@ class CubevizImageView(JdavizViewerMixin, WithSliceSelection, BqplotImageView):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
         # provide reference from state back to viewer to use for zoom syncing
         self.state._viewer = self
 
@@ -39,6 +43,11 @@ class CubevizImageView(JdavizViewerMixin, WithSliceSelection, BqplotImageView):
         # Hide axes by default
         self.state.show_axes = False
 
+        self.audified_cube = None
+        self.stream = None
+        self.audification_wl_bounds = None
+        self.audification_wl_unit = None
+        
     @property
     def _default_spectrum_viewer_reference_name(self):
         return self.jdaviz_helper._default_spectrum_viewer_reference_name
@@ -79,6 +88,64 @@ class CubevizImageView(JdavizViewerMixin, WithSliceSelection, BqplotImageView):
                 for layer_state in self.state.layers
                 if hasattr(layer_state, 'layer') and
                 isinstance(layer_state.layer, BaseData)]
+
+    def start_stream(self):
+        if self.stream:
+            self.stream.start()
+
+    def stop_stream(self):
+        if self.stream:
+            self.stream.stop()
+
+    def update_cube(self, x, y):
+        if not self.audified_cube or not hasattr(self.audified_cube, 'newsig') or not hasattr(self.audified_cube, 'sigcube'):
+            return
+        self.audified_cube.newsig = self.audified_cube.sigcube[x, y, :]
+        self.audified_cube.cbuff = True
+
+    def update_listener_wl_bounds(self, w1,w2):
+        if not self.audified_cube:
+            return
+        self.audified_cube.set_wl_bounds(w1, w2)
+        
+    def get_sonified_cube(self, sample_rate, buffer_size, assidx, ssvidx, pccut, audfrqmin, audfrqmax, eln):
+        spectrum = self.active_image_layer.layer.get_object(statistic=None)
+
+        wlens = spectrum.wavelength.to('m').value
+        flux  = spectrum.flux.value
+        
+        if self.audification_wl_bounds:
+            wl_unit = getattr(u, self.audification_wl_unit)
+            si_wl_bounds = (self.audification_wl_bounds * wl_unit).to('m')
+            wdx = np.logical_and(wlens >= si_wl_bounds[0].value,
+                                 wlens <= si_wl_bounds[1].value)
+            wlens = wlens[wdx]
+            flux = flux[:,:,wdx]
+            
+        pc_cube = np.percentile(np.nan_to_num(flux), np.clip(pccut,0,99), axis=-1)
+
+        # clip zeros and remove NaNs
+        clipped_arr = np.nan_to_num(np.clip(flux, 0, np.inf), copy=False)
+
+        # make a rough white-light image from the clipped array
+        whitelight = np.expand_dims(clipped_arr.sum(-1), axis=2)
+
+        # subtract any percentile cut
+        clipped_arr -= np.expand_dims(pc_cube, axis=2)
+
+        # and re-clip
+        clipped_arr = np.clip(clipped_arr, 0, np.inf)
+
+        # print(self.state.x_min, self.state.x_max, self._spectrum_viewer.state.x_min,  self._spectrum_viewer.state.x_maX)
+        print(f"making cube with {self.audification_wl_bounds}")
+        self.audified_cube = CubeListenerData(clipped_arr ** assidx, wlens, duration=0.8,
+                                              samplerate=sample_rate, buffsize=buffer_size, wl_bounds=self.audification_wl_bounds,
+                                              wl_unit=self.audification_wl_unit, audfrqmin=audfrqmin, audfrqmax=audfrqmax)
+        self.audified_cube.audify_cube()
+        self.audified_cube.sigcube = (self.audified_cube.sigcube * pow(whitelight / whitelight.max(), ssvidx)).astype('int16')
+        self.stream = sd.OutputStream(samplerate=sample_rate, blocksize=buffer_size, channels=1, dtype='int16', latency='low',
+                                      callback=self.audified_cube.player_callback)
+        self.audified_cube.cbuff = True
 
 
 @viewer_registry("cubeviz-profile-viewer", label="Profile 1D (Cubeviz)")
