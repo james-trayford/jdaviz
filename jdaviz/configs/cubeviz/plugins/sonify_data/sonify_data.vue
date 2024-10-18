@@ -20,6 +20,17 @@
       label="Data"
       hint="Select the data set."
     />
+    <v-row>
+      <v-select
+        :menu-props="{ left: true }"
+        attach
+        :items="sound_devices_items"
+        v-model="sound_devices_selected"
+        label="Sound device"
+        hint="Device which sound will be output from. Must be selected BEFORE cube is sonified."
+        persistent-hint
+        ></v-select>
+    </v-row>
 
     <v-row>
       <v-text-field
@@ -112,6 +123,10 @@
       ></v-text-field>
     </v-row>
     <v-row>
+        Volume
+        <glue-throttled-slider label="Volume" wait="300" max="100" step="1" :value.sync="volume" hide-details class="no-hint" />
+    </v-row>
+    <v-row>
        <v-switch
          v-model="eln"
          label="Equal Loudness Equalisation"
@@ -120,10 +135,21 @@
         ></v-switch>
     </v-row>
     <v-row>
-        <plugin-action-button
+      <plugin-action-button
+        :spinner="spinner"
         @click="sonify_cube"
       >
         Sonify data
+      </plugin-action-button>
+      <plugin-action-button v-if="!stream_active"
+        @click="start_stop_stream"
+      >
+        Start stream
+      </plugin-action-button>
+      <plugin-action-button v-if="stream_active"
+        @click="start_stop_stream"
+      >
+        Stop stream
       </plugin-action-button>
     </v-row>
  </j-tray-plugin>
