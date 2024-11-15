@@ -8,37 +8,22 @@
     :popout_button="popout_button"
     :scroll_to.sync="scroll_to">
 
-    <j-plugin-section-header>Sonify Cube</j-plugin-section-header>
+    <j-plugin-section-header>Cube Pre-Sonification Options</j-plugin-section-header>
     <v-alert v-if="!has_strauss" type="warning" style="margin-left: -12px; margin-right: -12px">
       To use Sonify Data, install strauss and restart jdaviz.
     </v-alert>
     <v-row>
-      <j-docs-link>Choose the input cube and spectral subset.</j-docs-link>
+      <j-docs-link>Choose the input cube, spectral subset and any advanced sonification options.</j-docs-link>
     </v-row>
-
     <plugin-dataset-select
       :items="dataset_items"
       :selected.sync="dataset_selected"
       :show_if_single_entry="false"
       label="Data"
+      api_hint="plg.dataset ="
+      :api_hints_enabled="api_hints_enabled"
       hint="Select the data set."
     />
-    <v-row>
-      <v-select
-        :menu-props="{ left: true }"
-        attach
-        :items="sound_devices_items"
-        v-model="sound_devices_selected"
-        label="Sound device"
-        hint="Device which sound will be output from. Must be selected BEFORE cube is sonified."
-        persistent-hint
-        ></v-select>
-    </v-row>
-    <v-row>
-        Volume
-        <glue-throttled-slider label="Volume" wait="300" max="100" step="1" :value.sync="volume" hide-details class="no-hint" />
-    </v-row>
-
     <plugin-subset-select
       :items="spectral_subset_items"
       :selected.sync="spectral_subset_selected"
@@ -48,7 +33,6 @@
       :api_hints_enabled="api_hints_enabled"
       hint="Select spectral region that defines the wavelength range."
     />
-
     <v-row>
       <v-expansion-panels accordion>
         <v-expansion-panel>
@@ -158,5 +142,22 @@
         Stop stream
       </plugin-action-button>
     </v-row>
+    <j-plugin-section-header>Live Sound Options</j-plugin-section-header>
+    <v-row>
+      <v-select
+        :menu-props="{ left: true }"
+        attach
+        :items="sound_devices_items"
+        v-model="sound_devices_selected"
+        label="Sound device"
+        hint="Device which sound will be output from."
+        persistent-hint
+        ></v-select>
+    </v-row>
+    <v-row>
+        Volume
+        <glue-throttled-slider label="Volume" wait="300" max="100" step="1" :value.sync="volume" hide-details class="no-hint" />
+   </v-row>
+
  </j-tray-plugin>
 </template>
