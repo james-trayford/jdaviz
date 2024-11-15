@@ -51,11 +51,14 @@ class SonifyData(PluginTemplateMixin, DatasetSelectMixin, SpectralSubsetSelectMi
         # TODO: Remove hardcoded range and flux viewer
         self.spec_viewer = self.app.get_viewer('spectrum-viewer')
         self.flux_viewer = self.app.get_viewer('flux-viewer')
-
+        
     @with_spinner()
     def vue_sonify_cube(self, *args):
         # Get index of selected device
         selected_device_index = self.sound_device_indexes[self.sound_devices_selected]
+        # Ensure the current spectral region bounds are up-to-date at render time
+        self.update_wavelength_range(None)
+        # generate the sonified cube
         self.flux_viewer.get_sonified_cube(self.sample_rate, self.buffer_size,
                                            selected_device_index, self.assidx, self.ssvidx,
                                            self.pccut, self.audfrqmin,
@@ -74,9 +77,12 @@ class SonifyData(PluginTemplateMixin, DatasetSelectMixin, SpectralSubsetSelectMi
         if not hasattr(self, 'spec_viewer'):
             return
         display_unit = self.spec_viewer.state.x_display_unit
-        min_wavelength = self.spectral_subset.selected_obj.lower.to_value(u.Unit(display_unit))
-        max_wavelength = self.spectral_subset.selected_obj.upper.to_value(u.Unit(display_unit))
-        self.flux_viewer.update_listener_wls(min_wavelength, max_wavelength, display_unit)
+        # is this spectral selection or the entire spectrum?
+        if hasattr(self.spectral_subset.selected_obj, "subregions"):
+            wlbounds = self.spectral_subset.selected_obj.subregions
+        else:
+            wlbounds = None
+        self.flux_viewer.update_listener_wls(wlbounds, display_unit)
 
     @observe('volume')
     def update_volume_level(self, event):
