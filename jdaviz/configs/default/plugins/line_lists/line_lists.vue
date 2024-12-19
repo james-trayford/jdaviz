@@ -1,6 +1,6 @@
 <template>
   <j-tray-plugin
-    :description="docs_description || 'Plot lines from preset or custom line lists.'"
+    :description="docs_description"
     :link="docs_link || 'https://jdaviz.readthedocs.io/en/'+vdocs+'/'+config+'/plugins.html#line-lists'"
     :disabled_msg="disabled_msg"
     :popout_button="popout_button"
@@ -132,18 +132,10 @@
               </v-col>
               <v-col cols=2>
                 <j-tooltip tipid='plugin-line-lists-color-picker'>
-                  <v-menu>
-                    <template v-slot:activator="{ on }">
-                        <span class="linelist-color-menu"
-                              :style="`background:${list_contents[item].color}; cursor: pointer`"
-                              @click.stop="on.click"
-                        >&nbsp;</span>
-                    </template>
-                    <div @click.stop="" style="text-align: end; background-color: white">
-                        <v-color-picker :value="list_contents[item].color"
-                                    @update:color="throttledSetColor({listname:item, color: $event.hexa})"></v-color-picker>
-                    </div>
-                  </v-menu>
+                  <plugin-color-picker
+                    :value="list_contents[item].color"
+                    @color-update="throttledSetColor({listname:item, color: $event.hexa})"
+                  />
                 </j-tooltip>
               </v-col>
               <v-col cols=8>
@@ -180,14 +172,12 @@
 
               <v-row class="row-min-bottom-padding" style="display: block">
                 <j-tooltip tipid='plugin-line-lists-custom-unit'>
-                    <v-select
-                      :menu-props="{ left: true }"
-                      attach
+                    <plugin-select
                       :items="custom_unit_choices"
-                      v-model="custom_unit"
+                      :selected.sync="custom_unit"
                       label="Unit"
                       dense
-                    ></v-select>
+                    />
                 </j-tooltip>
               </v-row>
 

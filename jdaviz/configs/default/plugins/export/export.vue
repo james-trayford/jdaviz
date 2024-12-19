@@ -1,6 +1,9 @@
 <template>
   <j-tray-plugin
-    description='Export data or plots from the app to a file.'
+    :config="config"
+    plugin_key="Export"
+    :api_hints_enabled.sync="api_hints_enabled"
+    :description="docs_description"
     :link="docs_link || 'https://jdaviz.readthedocs.io/en/'+vdocs+'/'+config+'/plugins.html#export'"
     :popout_button="popout_button"
     :scroll_to.sync="scroll_to">
@@ -22,21 +25,22 @@
         :selected.sync="viewer_selected"
         :multiselect="multiselect"
         :single_select_allow_blank="false"
+        api_hint="plg.viewer ="
+        :api_hints_enabled="api_hints_enabled"
       >
       </plugin-inline-select>
       <v-row class="row-min-bottom-padding">
-        <v-select
-          class="category-content"
-          :menu-props="{ left: true }"
-          attach
-          v-model="viewer_format_selected"
-          :items="viewer_format_items.map(i => i.label)"
-          label="Format"
-          hint="Image format for exporting viewers."
-          :disabled="viewer_selected.length == 0"
-          persistent-hint
-        >
-        </v-select>
+        <div class="category-content">
+          <plugin-select
+            :items="viewer_format_items.map(i => i.label)"
+            :selected.sync="viewer_format_selected"
+            label="Format"
+            api_hint="plg.viewer_format ="
+            :api_hints_enabled="api_hints_enabled"
+            hint="Image format for exporting viewers."
+            :disabled="viewer_selected.length == 0"
+          />
+        </div>
       </v-row>
       <v-row v-if="viewer_invalid_msg.length > 0">
         <span class="category-content v-messages v-messages__message text--secondary" style="color: red !important">
@@ -101,6 +105,8 @@
         :selected.sync="dataset_selected"
         :multiselect="multiselect"
         :single_select_allow_blank="false"
+        api_hint="plg.dataset ="
+        :api_hints_enabled="api_hints_enabled"
       >
       </plugin-inline-select>
 
@@ -110,18 +116,17 @@
         </span>
       </v-row>
       <v-row class="row-min-bottom-padding">
-          <v-select
-            class="category-content"
-            :menu-props="{ left: true }"
-            attach
-            v-model="dataset_format_selected"
+        <div class="category-content">
+          <plugin-select
             :items="dataset_format_items.map(i => i.label)"
+            :selected.sync="dataset_format_selected"
             label="Format"
+            api_hint="plg.dataset_format ="
+            :api_hints_enabled="api_hints_enabled"
             hint="Format for exporting datasets."
             :disabled="dataset_selected.length == 0"
-            persistent-hint
-          >
-          </v-select>
+          />
+        </div>
       </v-row>
     </div>
 
@@ -135,6 +140,8 @@
         :selected.sync="subset_selected"
         :multiselect="multiselect"
         :single_select_allow_blank="false"
+        api_hint="plg.subset ="
+        :api_hints_enabled="api_hints_enabled"
       >
       </plugin-inline-select>
 
@@ -145,20 +152,17 @@
       </v-row>
 
       <v-row class="row-min-bottom-padding">
-        <v-select
-          class="category-content"
-          :menu-props="{ left: true }"
-          attach
-          v-model="subset_format_selected"
-          :items="subset_format_items"
-          item-text="label"
-          item-disabled="disabled"
-          label="Format"
-          hint="Format for exporting subsets."
-          :disabled="subset_selected == null || subset_selected.length == 0"
-          persistent-hint
-        >
-        </v-select>
+        <div class="category-content">
+          <plugin-select
+            :items="subset_format_items.map(i => i.label)"
+            :selected.sync="subset_format_selected"
+            label="Format"
+            api_hint="plg.subset_format ="
+            :api_hints_enabled="api_hints_enabled"
+            hint="Format for exporting subsets."
+            :disabled="subset_selected == null || subset_selected.length == 0"
+          />
+        </div>
       </v-row>
     </div>
 
@@ -172,21 +176,22 @@
         :selected.sync="plugin_table_selected"
         :multiselect="multiselect"
         :single_select_allow_blank="false"
+        api_hint="plg.table ="
+        :api_hints_enabled="api_hints_enabled"
       >
       </plugin-inline-select>
       <v-row class="row-min-bottom-padding">
-        <v-select
-          class="category-content"
-          :menu-props="{ left: true }"
-          attach
-          v-model="plugin_table_format_selected"
-          :items="plugin_table_format_items.map(i => i.label)"
-          label="Format"
-          hint="File format for exporting plugin tables."
-          :disabled="plugin_table_selected.length == 0"
-          persistent-hint
-        >
-        </v-select>
+        <div class="category-content">
+          <plugin-select
+            :items="plugin_table_format_items.map(i => i.label)"
+            :selected.sync="plugin_table_format_selected"
+            label="Format"
+            api_hint="plg.table_format ="
+            :api_hints_enabled="api_hints_enabled"
+            hint="File format for exporting plugin tables."
+            :disabled="plugin_table_selected.length == 0"
+          />
+        </div>
       </v-row>
     </div>
 
@@ -200,6 +205,8 @@
         :selected.sync="plugin_plot_selected"
         :multiselect="multiselect"
         :single_select_allow_blank="false"
+        api_hint="plg.plugin_plot ="
+        :api_hints_enabled="api_hints_enabled"
       >
       </plugin-inline-select>
       <jupyter-widget
@@ -207,18 +214,17 @@
           style="position: absolute; left: -100%"
           :widget="plugin_plot_selected_widget"/>
       <v-row class="row-min-bottom-padding">
-        <v-select
-          class="category-content"
-          :menu-props="{ left: true }"
-          attach
-          v-model="plugin_plot_format_selected"
-          :items="plugin_plot_format_items.map(i => i.label)"
-          label="Format"
-          hint="File format for exporting plugin plots."
-          :disabled="plugin_plot_selected.length == 0"
-          persistent-hint
-        >
-        </v-select>
+        <div class="category-content">
+          <plugin-select
+            :items="plugin_plot_format_items.map(i => i.label)"
+            :selected.sync="plugin_plot_format_selected"
+            label="Format"
+            api_hint="plg.plugin_plot_format ="
+            :api_hints_enabled="api_hints_enabled"
+            hint="File format for exporting plugin plots."
+            :disabled="plugin_plot_selected.length == 0"
+          />
+        </div>
       </v-row>
     </div>
 
@@ -243,6 +249,8 @@
       :auto.sync="filename_auto"
       :invalid_msg="filename_invalid_msg"
       label="Filename"
+      :api_hint="'plg.filename = \''+filename_value+'\''"
+      :api_hints_enabled="api_hints_enabled"
       hint="Export to a file on disk."
     ></plugin-auto-label>
 
@@ -261,13 +269,18 @@
         :results_isolated_to_plugin="true"
         @click="export_from_ui"
         :spinner="spinner"
+        :api_hints_enabled="api_hints_enabled"
         :disabled="filename_value.length === 0 ||
                    movie_recording ||
                    subset_invalid_msg.length > 0 || data_invalid_msg.length > 0 ||
                    viewer_invalid_msg.length > 0 ||
                    (viewer_selected.length > 0 && viewer_format_selected == 'mp4' && !movie_enabled)"
       >
-        Export
+        {{ api_hints_enabled ?
+          'plg.export()'
+          :
+          'Export'
+        }}
       </plugin-action-button>
     </div>
 
@@ -305,19 +318,21 @@
 
 <style scoped>
   .export-category {
-   margin-top: 24px;
-   margin-left: 20px;
-   margin-right: 20px;
-   display: block;
-   text-align: center;
-   overflow: hidden;
-   white-space: nowrap;
-   text-transform: uppercase;
-   color: gray;
-   font-weight: 500;
+    margin-top: 24px;
+    margin-left: 20px;
+    margin-right: 20px;
+    display: block;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-transform: uppercase;
+    color: gray;
+    font-weight: 500;
   }
   .category-content {
     margin-left: 32px;
+    width: 100%;
+    padding-right: 24px;
   }
 
 </style>

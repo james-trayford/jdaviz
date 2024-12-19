@@ -7,10 +7,21 @@
         :items="items.map(i => i.label)"
         v-model="selected"
         @change="$emit('update:selected', $event)"
-        :label="label"
+        :label="api_hints_enabled && api_hint ? api_hint : label"
+        :class="api_hints_enabled && api_hint ? 'api-hint' : null"
         :hint="hint"
         persistent-hint
-      ></v-select>
+      >
+        <template v-slot:selection="{ item }">
+          <span :class="api_hints_enabled ? 'api-hint' : null">
+            {{ api_hints_enabled ?
+              '\'' + item + '\''
+              :
+              item
+            }}
+          </span>
+        </template>
+      </v-select>
       <v-chip v-if="selected === 'From File...'"
         close
         close-icon="mdi-close"
@@ -60,7 +71,7 @@
 <script>
 module.exports = {
   props: ['items', 'selected', 'label', 'hint', 'rules', 'from_file', 'from_file_message',
-          'dialog_title', 'dialog_hint']
+          'dialog_title', 'dialog_hint', 'api_hint', 'api_hints_enabled']
 };
 </script>
 

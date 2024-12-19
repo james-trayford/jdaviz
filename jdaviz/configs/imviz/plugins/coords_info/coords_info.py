@@ -11,13 +11,17 @@ from jdaviz.configs.cubeviz.plugins.viewers import CubevizImageView
 from jdaviz.configs.imviz.plugins.viewers import ImvizImageView
 from jdaviz.configs.mosviz.plugins.viewers import (MosvizImageView, MosvizProfileView,
                                                    MosvizProfile2DView)
+from jdaviz.configs.rampviz.plugins.viewers import RampvizImageView, RampvizProfileView
 from jdaviz.configs.specviz.plugins.viewers import SpecvizProfileView
+from jdaviz.core.custom_units_and_equivs import PIX2
 from jdaviz.core.events import ViewerAddedMessage, GlobalDisplayUnitChanged
 from jdaviz.core.helpers import data_has_valid_wcs
 from jdaviz.core.marks import PluginScatter, PluginLine
 from jdaviz.core.registries import tool_registry
 from jdaviz.core.template_mixin import TemplateMixin, DatasetSelectMixin
-from jdaviz.utils import _eqv_pixar_sr, _convert_surface_brightness_units
+from jdaviz.core.unit_conversion_utils import (all_flux_unit_conversion_equivs,
+                                               check_if_unit_is_per_solid_angle,
+                                               flux_conversion_general)
 
 __all__ = ['CoordsInfo']
 
@@ -29,10 +33,12 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
     _supported_viewer_classes = (SpecvizProfileView,
                                  ImvizImageView,
                                  CubevizImageView,
+                                 RampvizImageView,
+                                 RampvizProfileView,
                                  MosvizImageView,
                                  MosvizProfile2DView)
 
-    _viewer_classes_with_marker = (SpecvizProfileView, MosvizProfile2DView)
+    _viewer_classes_with_marker = (RampvizProfileView, SpecvizProfileView, MosvizProfile2DView)
 
     dataset_icon = Unicode("").tag(
         sync=True
@@ -120,6 +126,9 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
         self._create_viewer_callbacks(self.app.get_viewer_by_id(msg.viewer_id))
 
     def _on_global_display_unit_changed(self, msg):
+
+        # all cubes are converted to surface brightness so we just need to
+        # listen to SB for cubeviz unit changes
         if msg.axis == "sb":
             self.image_unit = u.Unit(msg.unit)
 
@@ -230,10 +239,13 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
 
     def update_display(self, viewer, x, y):
         self._dict = {}
-        if isinstance(viewer, SpecvizProfileView):
+        if isinstance(viewer, (SpecvizProfileView, RampvizProfileView)):
             self._spectrum_viewer_update(viewer, x, y)
         elif isinstance(viewer,
-                        (ImvizImageView, CubevizImageView, MosvizImageView, MosvizProfile2DView)):
+                        (ImvizImageView, CubevizImageView,
+                         MosvizImageView, MosvizProfile2DView,
+                         RampvizImageView)
+                        ):
             self._image_viewer_update(viewer, x, y)
 
     def _image_shape_inds(self, image):
@@ -251,6 +263,8 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
             # cubeviz case:
             return arr[int(round(x)), int(round(y)), viewer.state.slices[-1]]
         elif image.ndim == 2:
+            if isinstance(viewer, RampvizImageView):
+                x, y = y, x
             return arr[int(round(y)), int(round(x))]
         else:  # pragma: no cover
             raise ValueError(f'does not support ndim={image.ndim}')
@@ -366,6 +380,14 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
                 self._dict['spectral_axis'] = slice_plugin.value
                 self._dict['spectral_axis:unit'] = slice_plugin._obj.value_unit
 
+        elif isinstance(viewer, RampvizImageView):
+            coords_status = False
+
+            slice_plugin = self.app._jdaviz_helper.plugins.get('Slice', None)
+            if slice_plugin is not None and len(image.shape) == 3:
+                # float to be compatible with default value of nan
+                self._dict['slice'] = float(viewer.slice)
+
         elif isinstance(viewer, MosvizImageView):
 
             if data_has_valid_wcs(image, ndim=2):
@@ -414,6 +436,7 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
             except Exception:  # WCS might not be valid  # pragma: no cover
                 coords_status = False
             else:
+                coords_status = True
                 self.row2_title = 'Wave'
                 self.row2_text = f'{wave.value:10.5e} {wave.unit.to_string()}'
                 self.row2_unreliable = False
@@ -465,17 +488,43 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
                     dq_attribute = associated_dq_layer.state.attribute
                     dq_data = associated_dq_layer.layer.get_data(dq_attribute)
                     dq_value = dq_data[int(round(y)), int(round(x))]
-                unit = image.get_component(attribute).units
-            elif isinstance(viewer, CubevizImageView):
+                unit = u.Unit(image.get_component(attribute).units)
+            elif isinstance(viewer, (CubevizImageView, RampvizImageView)):
                 arr = image.get_component(attribute).data
-                unit = image.get_component(attribute).units
+                unit = u.Unit(image.get_component(attribute).units)
                 value = self._get_cube_value(
                     image, arr, x, y, viewer
                 )
-                if self.image_unit is not None and self.image_unit.is_equivalent(unit):
-                    value = _convert_surface_brightness_units(
-                        value, unit, self.image_unit
-                    )
+
+                # We don't want to convert for things like moment maps, so check
+                # physical type If unit is flux per pix2, the type will be
+                # 'unknown' rather than surface brightness, so multiply out pix2
+                # and check if the numerator is a spectral/photon flux density
+                if check_if_unit_is_per_solid_angle(unit, return_unit=True) == PIX2:
+                    physical_type = (unit * PIX2).physical_type
+                else:
+                    physical_type = unit.physical_type
+
+                valid_physical_types = ["spectral flux density",
+                                        "surface brightness",
+                                        "surface brightness wav",
+                                        "photon surface brightness wav",
+                                        "photon surface brightness",
+                                        "power density/spectral flux density wav",
+                                        "photon flux density wav",
+                                        "photon flux density"]
+
+                if str(physical_type) in valid_physical_types and self.image_unit is not None:
+
+                    # Create list of potentially needed equivalencies for flux/sb unit conversions
+                    pixar_sr = self.app.data_collection[0].meta.get('PIXAR_SR', 1)
+                    cube_wave = viewer.slice_value * u.Unit(self.app._get_display_unit('spectral'))
+
+                    equivalencies = all_flux_unit_conversion_equivs(pixar_sr,
+                                                                    cube_wave)
+
+                    value = flux_conversion_general(value, unit, u.Unit(self.image_unit),
+                                                    equivalencies, with_unit=False)
                     unit = self.image_unit
 
                 if associated_dq_layers is not None:
@@ -495,7 +544,7 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
                 dq_text = ''
             self.row1b_text = f'{value:+10.5e} {unit}{dq_text}'
             self._dict['value'] = float(value)
-            self._dict['value:unit'] = unit
+            self._dict['value:unit'] = str(unit)
             self._dict['value:unreliable'] = unreliable_pixel
         else:
             self.row1b_title = ''
@@ -518,9 +567,9 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
     def _spectrum_viewer_update(self, viewer, x, y):
         def _cursor_fallback():
             self._dict['axes_x'] = x
-            self._dict['axes_x:unit'] = viewer.state.x_display_unit
+            self._dict['axes_x:unit'] = str(viewer.state.x_display_unit)
             self._dict['axes_y'] = y
-            self._dict['axes_y:unit'] = viewer.state.y_display_unit
+            self._dict['axes_y:unit'] = str(viewer.state.y_display_unit)
             self._dict['data_label'] = ''
 
         def _copy_axes_to_spectral():
@@ -579,12 +628,18 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
 
                 # temporarily here, may be removed after upstream units handling
                 # or will be generalized for any sb <-> flux
-                if '_pixel_scale_factor' in sp.meta:
-                    eqv = u.spectral_density(sp.spectral_axis) + _eqv_pixar_sr(sp.meta['_pixel_scale_factor'])  # noqa
-                    disp_flux = sp.flux.to_value(viewer.state.y_display_unit, eqv)
+                # Create list of potentially needed equivalencies for flux/sb unit conversions
+                pixar_sr = self.app.data_collection[0].meta.get('PIXAR_SR', 1)
+                equivalencies = all_flux_unit_conversion_equivs(pixar_sr,
+                                                                sp.spectral_axis)
+
+                if sp.flux.unit is not None and viewer.state.y_display_unit is not None:
+                    disp_flux = flux_conversion_general(sp.flux.value,
+                                                        sp.flux.unit,
+                                                        viewer.state.y_display_unit,
+                                                        equivalencies, with_unit=False)  # noqa: E501
                 else:
-                    disp_flux = sp.flux.to_value(viewer.state.y_display_unit,
-                                                 u.spectral_density(sp.spectral_axis))
+                    disp_flux = sp.flux
 
                 # Out of range in spectral axis.
                 if (self.dataset.selected != lyr.layer.label and
@@ -642,7 +697,7 @@ class CoordsInfo(TemplateMixin, DatasetSelectMixin):
         self.row3_title = 'Flux'
         self.row3_text = f'{closest_flux:10.5e} {flux_unit}'
         self._dict['axes_y'] = closest_flux
-        self._dict['axes_y:unit'] = viewer.state.y_display_unit
+        self._dict['axes_y:unit'] = str(viewer.state.y_display_unit)
 
         if closest_icon is not None:
             self.icon = closest_icon

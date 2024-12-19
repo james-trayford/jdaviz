@@ -1,36 +1,44 @@
 <template>
   <div>
-  <v-row v-if="items.length > 1 || selected.length===0 || show_if_single_entry">
+  <v-row v-if="items.length > 1 || selected.length===0 || show_if_single_entry || api_hints_enabled">
     <v-select
       :menu-props="{ left: true }"
       attach
       :items="items"
       v-model="selected"
       @change="$emit('update:selected', $event)"
-      :label="label ? label : 'Subset'"
+      :label="api_hints_enabled && api_hint ? api_hint : (label ? label : 'Subset')"
+      :class="api_hints_enabled && api_hint ? 'api-hint' : null"
       :hint="hint ? hint : 'Select subset.'"
       :rules="rules ? rules : []"
       :multiple="multiselect"
-      :chips="multiselect"
+      :chips="multiselect && !api_hints_enabled"
       item-text="label"
       item-value="label"
       persistent-hint
     >
-      <template slot="selection" slot-scope="data">
+      <template v-slot:selection="{ item, index }">
         <div class="single-line" style="width: 100%">
-          <v-chip v-if="multiselect" style="width: calc(100% - 10px)">
+          <span v-if="api_hints_enabled" class="api-hint" :style="index > 0 ? 'display: none' : null">
+            {{ multiselect ?
+              selected
+              :
+              '\'' + selected + '\''
+            }}
+          </span>
+          <v-chip v-else-if="multiselect" style="width: calc(100% - 10px)">
             <span>
-              <v-icon v-if="data.item.color" left :color="data.item.color">
-                {{ data.item.type=='spectral' ? 'mdi-chart-bell-curve' : 'mdi-chart-scatter-plot' }}
+              <v-icon v-if="item.color" left :color="item.color">
+                {{ item.type=='spectral' ? 'mdi-chart-bell-curve' : 'mdi-chart-scatter-plot' }}
               </v-icon>
-              {{ data.item.label }}
+              {{ item.label }}
             </span>
           </v-chip>
           <span v-else>
-            <v-icon v-if="data.item.color" left :color="data.item.color">
-              {{ data.item.type=='spectral' ? 'mdi-chart-bell-curve' : 'mdi-chart-scatter-plot' }}
+            <v-icon v-if="item.color" left :color="item.color">
+              {{ item.type=='spectral' ? 'mdi-chart-bell-curve' : 'mdi-chart-scatter-plot' }}
             </v-icon>
-            {{ data.item.label }}
+            {{ item.label }}
           </span>
         </div>
       </template>
@@ -75,7 +83,9 @@
 
 <script>
 module.exports = {
-  props: ['items', 'selected', 'label', 'has_subregions', 'has_subregions_warning', 'hint', 'rules', 'show_if_single_entry', 'multiselect']
+  props: ['items', 'selected', 'label', 'has_subregions', 'has_subregions_warning', 'hint', 'rules', 'show_if_single_entry', 'multiselect',
+          'api_hint', 'api_hints_enabled'
+  ]
 };
 </script>
 

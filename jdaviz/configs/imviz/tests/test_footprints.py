@@ -175,7 +175,7 @@ def test_api_after_linking(imviz_helper):
         assert no_marks_displayed is True
 
         # link by wcs and retest
-        imviz_helper.link_data(link_type='wcs')
+        imviz_helper.link_data(align_by='wcs')
 
         viewer_marks = _get_markers_from_viewer(viewer)
         # distinguish default from custom overlay with color
@@ -198,7 +198,7 @@ def test_footprint_updates_on_rotation(imviz_helper):
     ndd = NDData(arr, wcs=image_2d_wcs)
 
     imviz_helper.load_data(ndd)
-    imviz_helper.link_data(link_type='wcs')
+    imviz_helper.link_data(align_by='wcs')
 
     footprints = imviz_helper.plugins['Footprints']
     footprints.keep_active = True
@@ -240,8 +240,8 @@ def test_footprint_updates_on_rotation(imviz_helper):
     assert np.concatenate([marks[0].y, marks[1].y]).min() < -3
 
     # now rotate to north-up east-left:
-    orientation = imviz_helper.plugins['Orientation']._obj
-    orientation.create_north_up_east_left(set_on_create=True)
+    orientation = imviz_helper.plugins['Orientation']
+    orientation.set_north_up_east_left()
 
     # If all footprint orientations have been updated, the lowest
     # mark should still be centered low. If the footprint

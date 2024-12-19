@@ -94,12 +94,15 @@ object, you can load it into Imviz as follows:
 
 .. code-block:: python
 
-    import numpy as np
-    from astropy.nddata import NDData
+    from astropy.nddata import NDData, StdDevUncertainty
     from jdaviz import Imviz
 
-    # mydatamodel is a jwst.datamodels object
-    ndd = NDData(np.array(mydatamodel.data), wcs=mydatamodel.get_fits_wcs())
+    # mydatamodel is a jwst.datamodels object with stddev ERR array
+    ndd = NDData(mydatamodel.data,
+                 uncertainty=StdDevUncertainty(mydatamodel.err),
+                 mask=mydatamodel.dq,
+                 wcs=mydatamodel.meta.wcs,
+                 meta=dict(mydatamodel.meta.items()))
     imviz = Imviz()
     imviz.load_data(ndd, data_label='my_data_model')
     imviz.show()
@@ -110,8 +113,7 @@ Roman datamodels
 You can also load Nancy Grace Roman Space Telescope (hereafter, Roman) data products, which are
 provided as ASDF files. If an ASDF file has a ``roman`` attribute, Jdaviz will
 open it with `roman-datamodels <https://github.com/spacetelescope/roman_datamodels>`_.
-You must run ``pip install roman-datamodels`` separately as it is not automatically installed
-by Jdaviz.
+In order to load Roman files, you will need to install the :ref:`optional-deps-roman`.
 
 .. code-block:: python
 
@@ -216,7 +218,7 @@ can load the regions into Imviz as follows:
 
 .. code-block:: python
 
-    imviz.load_regions_from_file("/path/to/data/myregions.reg")
+    imviz.plugins['Subset Tools'].import_region("/path/to/data/myregions.reg")
 
 Unsupported regions will be skipped and trigger a warning. Those that
 failed to load, if any, can be returned as a list of tuples of the
@@ -224,7 +226,7 @@ form ``(region, reason)``:
 
 .. code-block:: python
 
-    bad_regions = imviz.load_regions_from_file("/path/to/data/myregions.reg", return_bad_regions=True)
+    bad_regions = imviz.plugins['Subset Tools'].import_region("/path/to/data/myregions.reg", return_bad_regions=True)
 
 You could also define :ref:`regions:shapes` programmatically and load them; e.g.:
 

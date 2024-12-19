@@ -1,11 +1,155 @@
-4.0 (unreleased)
+4.1 (unreleased)
 ================
 
 New Features
 ------------
 
+* New design for viewer legend and data-menu. [#3220, #3254, #3263, #3264, #3271, #3272, #3274, #3289, #3310]
+
+* Improve performance while importing multiple regions. [#3321]
+
+Cubeviz
+^^^^^^^
+
+- Add Sonify Data plugin which uses the Strauss package to turn a data cube into sound. [#3269]
+
+Imviz
+^^^^^
+
+* Orientation plugin API now exposes create_north_up_east_left and create_north_up_east_right methods. [#3308]
+
+* Add Roman WFI and CGI footprints to the Footprints plugin. [#3322]
+
+Mosviz
+^^^^^^
+
+Specviz
+^^^^^^^
+- Specviz parser will now split a spectrum with a 2D flux array into multiple spectra on load
+  (useful for certain SDSS file types). [#3229]
+
+Specviz2d
+^^^^^^^^^
+
+API Changes
+-----------
+- Removed API access to plugins that have passed the deprecation period: Links Control, Canvas Rotation, Export Plot. [#3270]
+
+- Subset Tools plugin now exposes the ``subset``, ``combination_mode``, ``recenter_dataset``,
+  ``recenter``, ``get_center``, and ``set_center`` in the user API. [#3293, #3304, #3325]
+
+- Metadata plugin: ``metadata_plugin.metadata`` API has been deprecated; use
+  ``metadata_plugin.meta`` instead, which will return a Python dictionary instead of
+  list of tuples. [#3292]
+
+Cubeviz
+^^^^^^^
+
+Imviz
+^^^^^
+
+Mosviz
+^^^^^^
+
+Specviz
+^^^^^^^
+
+Specviz2d
+^^^^^^^^^
+
+Bug Fixes
+---------
+
+- Fixed broken flux unit conversions in all plugins that respond to changes in flux unit changes. These cases
+  occured when certain flux-to flux-conversions occured, as well as certain conversions between flux and surface
+  brightness. This PR also fixed an issue with unit string formatting in the aperture photometry plugin. [#3228]
+
+Cubeviz
+^^^^^^^
+- Removed the deprecated ``save as fits`` option from the Collapse, Moment Maps, and Spectral Extraction plugins; use the Export plugin instead. [#3256]
+
+Imviz
+^^^^^
+
+Mosviz
+^^^^^^
+
+Specviz
+^^^^^^^
+
+Specviz2d
+^^^^^^^^^
+
+Other Changes and Additions
+---------------------------
+- Added a short description of each plugin in the side menu, visible before the plugin is opened. Removes redundant descriptions above link
+  out to documentation when plugin is opened. Enable search on plugin description in addition to title. [#3268]
+
+4.0.1 (unreleased)
+==================
+
+Bug Fixes
+---------
+
+- Improved performance and removed jittering for the matched box zoom tool. [#3215]
+
+- Fixed Aperture Photometry radial profile fit crashing when NaN is present in
+  aperture data for Cubeviz and Imviz. [#3246]
+
+- Prevent PluginMarks from converting y-range so they maintain their position
+  in the spectrum-viewer when spectral y units are converted. [#3242]
+
+- Added ``nbclassic`` dependency to fix ``solara``-based popouts. [#3282]
+
+- Fixed viewer widgets displaying improperly if initialized out of view in Jupyter Lab. [#3299]
+
+- Fixed width of sliders in plugins to use full-width of plugin. [#3303]
+
+- Raise an error when attempting to open in a popout or sidecar when not supported (i.e. within VSCode). [#3309]
+
+Cubeviz
+^^^^^^^
+
+- Add missing styling to API hints entry for aperture_method in the spectral extraction plugin. [#3231]
+
+- Fixed "spectrum at spaxel" tool so it no longer resets spectral axis zoom. [#3249]
+
+- Fixed initializing a Gaussian1D model component when ``Cube Fit`` is toggled on. [#3295]
+
+- Spectral extraction now correctly respects the loaded mask cube. [#3319]
+
+Imviz
+^^^^^
+
+- Remove "From File.." option when running on an external server. [#3239]
+
+- Button in the footprints plugin to change the link-type now redirects to the orientation plugin
+  when the change fails due to the presence of subsets or markers. [#3276]
+
+- Updates UI language in the orientation plugin to better match API. [#3276]
+
+- Update Roman L2 example files in example notebook. [#3346]
+
+Mosviz
+^^^^^^
+
+Specviz
+^^^^^^^
+
+Specviz2d
+^^^^^^^^^
+
+4.0 (2024-10-17)
+================
+
+New Features
+------------
+
+- Added ability to load remote data from a URI or URL. [#2875, #2923]
+
 - Added flux/surface brightness translation and surface brightness
-  unit conversion in Cubeviz and Specviz. [#2781, #2940, #3088, #3113]
+  unit conversion in Cubeviz and Specviz. [#2781, #2940, #3088, #3111, #3113, #3129,
+  #3139, #3149, #3155, #3178, #3185, #3187, #3190, #3156, #3200, #3192, #3206, #3211, #3216, #3219]
 
 - Plugin tray is now open by default. [#2892]
 
@@ -15,6 +159,15 @@ New Features
   for ``Colormap`` vs ``Color``. [#2894]
 
 - The colormap menu for image layers now shows in-line previews of the colormaps. [#2900]
+
+- Plugins can now expose in-UI API hints. [#3137, #3159]
+
+- The standalone version of jdaviz now uses solara instead of voila, resulting in faster load times. [#2909]
+
+- New configuration for ramp/Level 1 and rate image/Level 2 data products from Roman WFI and
+  JWST [#3120, #3148, #3167, #3171, #3194]
+
+- Unit columns are now visible by default in the results table in model fitting. [#3196]
 
 Cubeviz
 ^^^^^^^
@@ -27,22 +180,29 @@ Cubeviz
 
 - Background subtraction support within Spectral Extraction. [#2859]
 
+- Aperture photometry plugin now listens to changes in display unit. [#3118]
+
 Imviz
 ^^^^^
 
-- Added a table with catalog search results. [#2915, #3101]
+- Added a table with catalog search results. [#2915, #3101, #3099]
 
 - "Imviz Line Profiles (XY)" plugin is renamed to "Image Profiles (XY)". [#3121]
 
-Mosviz
-^^^^^^
+- Added Gaia catalog to Catalog plugin. [#3090]
+
+- Updated ``link_type`` to ``align_by`` and ``wcs_use_affine`` to ``wcs_fast_approximation`` in
+  Orientation plugin API to better match UI text. [#3128]
 
 Specviz
 ^^^^^^^
 
+- Fixed ``viz.app.get_subsets()`` for XOR mode. [#3124]
+
 Specviz2d
 ^^^^^^^^^
 
+- Add option to use self-derived spatial profile for Horne extract in spectral extraction plugin. [#2845]
 
 API Changes
 -----------
@@ -50,6 +210,8 @@ API Changes
 - The ``Monochromatic`` option for ``color_mode`` in plot options is now renamed to ``Color``.
   ``Monochromatic`` will continue to work with a deprecation warning, but may be removed in a
   future release. [#2894]
+
+- Plugin Table components now support row selection. [#2856]
 
 Cubeviz
 ^^^^^^^
@@ -77,21 +239,21 @@ Cubeviz
 - Custom Spectrum1D writer format ``jdaviz-cube`` is removed. Use ``wcs1d-fits`` from
   ``specutils`` instead. [#2094]
 
+- Aperture Photometry plugin now uses TRFLSQFitter to fit radial profile because LevMarLSQFitter
+  is no longer recommended by Astropy. [#3202]
+
 Imviz
 ^^^^^
 
 - Deprecated Rotate Canvas plugin was removed; use Orientation plugin instead. [#2878]
 
-Mosviz
-^^^^^^
+- Aperture Photometry plugin now uses TRFLSQFitter to fit radial profile because LevMarLSQFitter
+  is no longer recommended by Astropy. [#3202]
 
 Specviz
 ^^^^^^^
 
 - In the Line Analysis plugin, deprecated ``width`` was removed (use ``continuum_width``). [#2878]
-
-Specviz2d
-^^^^^^^^^
 
 Bug Fixes
 ---------
@@ -99,6 +261,12 @@ Bug Fixes
 - Markers table can now export to CSV but its columns had to be changed to accomodate this fix:
   world and pixel (previously containing SkyCoord and pixel location tuples, respectively) are now
   each two separate columns for world_ra/world_dec and pixel_x/pixel_y, respectively. [#3089]
+
+- Stretch histogram in zoom limits no longer attempts unnecessary updates when zoom limits are changed. [#3151]
+
+- Aperture Photometry plugin no longer allows negative counts conversion factor. [#3154]
+
+- Fixed multiple select handling for batch mode aperture photometry in Cubeviz. [#3163]
 
 Cubeviz
 ^^^^^^^
@@ -120,111 +288,40 @@ Cubeviz
 - Fixed spectral axis value display in Markers plugin. Previously, it failed to display
   very small values, resulting in zeroes. [#3119]
 
-Imviz
-^^^^^
+- No longer incorrectly swap RA and Dec axes when loading Spectrum1D objects. [#3133]
 
-Mosviz
-^^^^^^
-
-Specviz
-^^^^^^^
+- Fixed fitting a model to the entire cube when NaNs are present. [#3191]
 
 Specviz2d
 ^^^^^^^^^
+
+- Fixed Subset unit when it is created in 2D spectrum viewer. [#3201]
+
+- Fix matched mouseover marker for 1d spectrum viewer when mouse is over 2d spectrum viewer. [#3203]
 
 Other Changes and Additions
 ---------------------------
 
-3.11 (unreleased)
-=================
+- Bump required specutils version to 1.16. Moment 0 calculation is now in units
+  of flux*dx (rather than flux) [#3184]
 
-New Features
-------------
-
-- Load remote data from a URI or URL. [#2875, #2923]
-
-Cubeviz
-^^^^^^^
-
-Imviz
-^^^^^
-
-Mosviz
-^^^^^^
-
-Specviz
-^^^^^^^
-
-Specviz2d
-^^^^^^^^^
-- Add option to use self-derived spatial profile for Horne extract in spectral extraction plugin. [#2845]
-
-API Changes
------------
-
-- Plugin Table components now support row selection. [#2856]
-
-Cubeviz
-^^^^^^^
-
-Imviz
-^^^^^
-
-Mosviz
-^^^^^^
-
-Specviz
-^^^^^^^
-
-Specviz2d
-^^^^^^^^^
-
-Bug Fixes
----------
-
-Cubeviz
-^^^^^^^
-
-Imviz
-^^^^^
-
-Mosviz
-^^^^^^
-
-Specviz
-^^^^^^^
-
-Specviz2d
-^^^^^^^^^
-
-Other Changes and Additions
----------------------------
-
-- Max pinned matplotlib to <3.9 due to standalone build problems. [#2917]
-
-3.10.4 (unreleased)
+3.10.4 (2024-10-29)
 ===================
 
 Bug Fixes
 ---------
 
-- Fixed the data menu in Model Fitting not being populated if Cube Fit was toggled
-  while a spectral subset was selected. [#3123]
-
-Cubeviz
-^^^^^^^
+- Stretch histogram in zoom limits no longer attempts unnecessary updates when zoom limits are changed. [#3151]
 
 Imviz
 ^^^^^
 
-Mosviz
-^^^^^^
-
-Specviz
-^^^^^^^
+- Remove "From File.." option when running on an external server. [#3239]
 
 Specviz2d
 ^^^^^^^^^
+
+- Fix matched mouseover marker for 1d spectrum viewer when mouse is over 2d spectrum viewer. [#3203]
 
 3.10.3 (2024-07-22)
 ===================

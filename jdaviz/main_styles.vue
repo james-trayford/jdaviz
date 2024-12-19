@@ -37,7 +37,7 @@ export default {
 
 <style id="jdaviz-main-styles" >
 * {
-  /* otherwise, voila will override box-sizing to unset which screws up layouts */
+  /* otherwise, solara will override box-sizing to unset which screws up layouts */
   box-sizing: border-box !important;
 }
 
@@ -239,12 +239,16 @@ a:active {
   max-height: calc(100% - 48px);
 }
 
-#popout-widget-container .v-application.jdaviz {
+/* #popout-widget-container line can be removed once users use ipypopout >= 1.3.0 */
+#popout-widget-container .v-application.jdaviz,
+.jupyter-widgets-popout-container .v-application.jdaviz {
   min-height: 100vh;
   max-height: 100vh;
 }
 
-#popout-widget-container .jdaviz__content--not-in-notebook {
+/* #popout-widget-container line can be removed once users use ipypopout >= 1.3.0 */
+#popout-widget-container .jdaviz__content--not-in-notebook,
+.jupyter-widgets-popout-container .jdaviz__content--not-in-notebook {
   max-height: 100%;
 }
 
@@ -262,4 +266,58 @@ a:active {
   font-family: Roboto, sans-serif !important;
   font-weight: 500 !important;
 }
+
+span.api-hint, span.api-hint-header {
+  color: #007BA1 !important;
+  font-family: monospace;
+  font-size: 12px;  
+  letter-spacing: -0.05em !important;
+}
+
+span.api-hint-header {
+  font-weight: bold;
+}
+
+.api-hint :is(.v-select__slot, .v-text-field__slot, .v-input__slot, .v-input--radio-group__input) > .v-label, .api-hint .v-label {
+  color: #007BA1 !important;
+  font-family: monospace;
+  font-size: 10px !important;
+  overflow-wrap: break-word;
+  letter-spacing: -0.05em !important;
+  user-select: text !important;
+}
+
+.api-hint :is(.v-select__slot, .v-text-field__slot) > .v-label {
+  font-size: 13px !important;
+}
+
+.api-hint .v-alert__content, .api-hint.slider-label {
+  color: #007BA1 !important;
+  font-family: monospace;
+  font-size: 10px !important;
+  letter-spacing: -0.05em !important;
+  user-select: text !important;
+}
+
+.api-hint.v-btn {
+  color: #007BA1 !important;
+  font-family: monospace !important;
+  font-size: 12px !important;
+  overflow-wrap: break-word;
+  text-transform: none !important;
+}
+
+.api-hint-invert-color span {
+  color: #C6F0FD !important;
+  filter: invert(1) !important;
+}
+
+.api-hint-invert-color :is(.v-select__slot, .v-text-field__slot, .v-input__slot, .v-input--radio-group__input) > .v-label {
+  filter: invert(1) !important;
+}
+
+.api-hint-invert-color :is(.v-select__slot) > .v-label {
+  color: #C6F0FD !important;
+}
+
 </style>

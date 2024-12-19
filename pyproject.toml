@@ -11,9 +11,8 @@ dependencies = [
     "matplotlib>=3.6",
     "traitlets>=5.0.5",
     "bqplot>=0.12.37",
-    "bqplot-image-gl>=1.4.11",
     "glue-core>=1.20.0",
-    "glue-jupyter>=0.21.0",
+    "glue-jupyter>=0.23.0",
     "echo>=0.5.0",
     "ipykernel>=6.19.4",
     "ipyvue>=1.6",
@@ -21,9 +20,9 @@ dependencies = [
     "ipysplitpanes>=0.1.0",
     "ipygoldenlayout>=0.3.0",
     "ipywidgets>=8.0.6",
-    "voila>=0.4,<0.5",
+    "solara>=1.40.0",
     "pyyaml>=5.4.1",
-    "specutils>=1.15",
+    "specutils>=1.18",
     "specreduce>=1.4.1",
     "photutils>=1.4",
     "glue-astronomy>=0.10",
@@ -36,9 +35,10 @@ dependencies = [
     "regions>=0.6",
     "scikit-image",
     "sidecar>=0.5.2",
-    "ipypopout>=0.0.11",
+    "ipypopout>=2.0.0",
     "astroquery",
     "requests",
+    "nbclassic",
 ]
 dynamic = [
     "version",
@@ -80,7 +80,10 @@ docs = [
     "sphinx_design"
 ]
 roman = [
-    "roman_datamodels>=0.17.1",
+    "roman_datamodels>=0.22.0",
+]
+strauss = [
+    "strauss",
 ]
 
 [build-system]
@@ -105,6 +108,7 @@ jdaviz = [
     "data/*",
     "data/*/*",
     "*.vue",
+    "*.css",
     "components/*.vue",
     "configs/*/*/*/*.vue",
     "configs/*/*.yaml",
@@ -134,6 +138,8 @@ filterwarnings = [
     "ignore:The unit 'Angstrom' has been deprecated in the VOUnit standard\\. Suggested.* 0\\.1nm\\.",
     "ignore:((.|\n)*)Sentinel is not a public part of the traitlets API((.|\n)*)",
     "ignore:datetime\\.datetime\\.utcfromtimestamp:DeprecationWarning",  # asdf + dateutil<=2.8.2 + Python 3.12
+    "ignore:'audioop' is deprecated and slated for removal in Python 3.13",
+    "ignore:Importing display from IPython.core.display is deprecated since IPython 7.14, please import from IPython.display",
     "ignore::DeprecationWarning:glue",
     "ignore::DeprecationWarning:asteval",
     "ignore:::specutils.spectra.spectrum1d",

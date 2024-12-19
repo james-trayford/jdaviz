@@ -25,9 +25,12 @@
 # Thus, any C-extensions that are needed to build the documentation will *not*
 # be accessible, and the documentation will not build correctly.
 
+import datetime
 import subprocess
 import sys
-import datetime
+
+from docutils import nodes
+from sphinx.util.docutils import SphinxDirective
 
 from jdaviz import __version__
 
@@ -173,6 +176,7 @@ extlinks = {
 # variables set in the global configuration. The variables set in the
 # global configuration are listed below, commented out.
 
+html_static_path = ["_static"]
 html_css_files = ["jdaviz.css"]
 html_copy_source = False
 
@@ -287,7 +291,27 @@ intersphinx_mapping.update({  # noqa: F405
     'skimage': ('https://scikit-image.org/docs/stable/', None),
     'specreduce': ('https://specreduce.readthedocs.io/en/stable/', None),
     'specutils': ('https://specutils.readthedocs.io/en/stable/', None),
-    'traitlets': ('https://traitlets.readthedocs.io/en/stable/', None)})
+    'stdatamodels': ('https://stdatamodels.readthedocs.io/en/latest/', None),
+    'traitlets': ('https://traitlets.readthedocs.io/en/stable/', None),
+    'jwst': ('https://jwst-pipeline.readthedocs.io/en/stable/', None),
+    'romancal': ('https://roman-pipeline.readthedocs.io/en/stable/', None),
+})
 
 # Options for linkcheck
-linkcheck_ignore = ['https://github.com/spacetelescope/jdaviz/settings/branches']
+linkcheck_ignore = [
+    'https://github.com/spacetelescope/jdaviz/settings/branches',
+    'https://pypi.org/project/jdaviz/#files'
+]
+
+# -- Custom directive -------------------------------------------
+
+class JdavizCLIHelpDirective(SphinxDirective):
+
+    def run(self):
+        help_text = subprocess.check_output(["jdaviz", "--help"], encoding="utf-8")
+        paragraph_node = nodes.literal_block(text=help_text)
+        return [paragraph_node]
+
+
+def setup(app):
+    app.add_directive('jdavizclihelp', JdavizCLIHelpDirective)

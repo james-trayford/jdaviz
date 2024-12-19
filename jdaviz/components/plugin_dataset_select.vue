@@ -1,13 +1,13 @@
 <template>
-  <div>
-  <v-row v-if="items.length > 1 || selected.length===0 || show_if_single_entry">
+  <v-row v-if="items.length > 1 || selected.length===0 || show_if_single_entry || api_hints_enabled">
     <v-select
       :menu-props="{ left: true }"
       attach
       :items="items"
       v-model="selected"
       @change="$emit('update:selected', $event)"
-      :label="label ? label : 'Data'"
+      :class="api_hints_enabled && api_hint ? 'api-hint' : null"
+      :label="api_hints_enabled && api_hint ? api_hint : (label ? label : 'Data')"
       :hint="hint ? hint : 'Select data.'"
       :rules="rules ? rules : []"
       :multiple="multiselect"
@@ -24,9 +24,13 @@
               {{ data.item.label }}
             </span>
           </v-chip>
-          <span v-else>
-            <j-layer-viewer-icon v-if="data.item.icon" span_style="margin-right: 4px" :icon="data.item.icon" :prevent_invert_if_dark="true"></j-layer-viewer-icon>
-            {{ data.item.label }}
+          <span v-else :class="api_hints_enabled ? 'api-hint' : null">
+            <j-layer-viewer-icon v-if="data.item.icon && !api_hints_enabled" span_style="margin-right: 4px" :icon="data.item.icon" :prevent_invert_if_dark="true"></j-layer-viewer-icon>
+            {{ api_hints_enabled ?
+              '\'' + data.item.label + '\''
+              :
+              data.item.label
+            }}
           </span>
         </div>
       </template>
@@ -59,11 +63,17 @@
       </template>
    </v-select>
   </v-row>
- </div>
 </template>
 <script>
 module.exports = {
-  props: ['items', 'selected', 'label', 'hint', 'rules', 'show_if_single_entry', 'multiselect'],
+  props: ['items', 'selected', 'label', 'hint', 'rules', 'show_if_single_entry', 'multiselect',
+          'api_hint', 'api_hints_enabled'],
+  methods: {
+    isWCSOnlyLayer(item) {
+      const wcsOnly = Object.keys(this.$props.viewer.wcs_only_layers).includes(item.name)
+      return wcsOnly
+    },
+  }
 };
 </script>
 

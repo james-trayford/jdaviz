@@ -5,20 +5,22 @@ from bqplot import LinearScale
 from bqplot.marks import Lines, Label, Scatter
 from glue.core import HubListener
 from specutils import Spectrum1D
-from jdaviz.utils import _eqv_pixar_sr
 
 from jdaviz.core.events import GlobalDisplayUnitChanged
 from jdaviz.core.events import (SliceToolStateMessage, LineIdentifyMessage,
                                 SpectralMarksChangedMessage,
                                 RedshiftMessage)
+from jdaviz.core.unit_conversion_utils import (all_flux_unit_conversion_equivs,
+                                               flux_conversion_general)
+
 
 __all__ = ['OffscreenLinesMarks', 'BaseSpectrumVerticalLine', 'SpectralLine',
            'SliceIndicatorMarks', 'ShadowMixin', 'ShadowLine', 'ShadowLabelFixedY',
            'PluginMark', 'LinesAutoUnit', 'PluginLine', 'PluginScatter',
            'LineAnalysisContinuum', 'LineAnalysisContinuumCenter',
            'LineAnalysisContinuumLeft', 'LineAnalysisContinuumRight',
-           'LineUncertainties', 'ScatterMask', 'SelectedSpaxel', 'MarkersMark', 'FootprintOverlay',
-           'ApertureMark']
+           'LineUncertainties', 'ScatterMask', 'SelectedSpaxel', 'MarkersMark',
+           'CatalogMark', 'FootprintOverlay', 'ApertureMark']
 
 accent_color = "#c75d2c"
 
@@ -36,11 +38,13 @@ class OffscreenLinesMarks(HubListener):
                                      handler=self._update_counts)
 
         self.left = Label(text=[''], x=[0.02], y=[0.8],
-                          scales={'x': LinearScale(min=0, max=1), 'y': LinearScale(min=0, max=1)},
+                          scales={'x': LinearScale(min=0, max=1),
+                                  'y': LinearScale(min=0, max=1)},
                           colors=['gray'], default_size=12,
                           align='start')
         self.right = Label(text=[''], x=[0.98], y=[0.8],
-                           scales={'x': LinearScale(min=0, max=1), 'y': LinearScale(min=0, max=1)},
+                           scales={'x': LinearScale(min=0, max=1),
+                                   'y': LinearScale(min=0, max=1)},
                            colors=['gray'], default_size=12,
                            align='end')
 
@@ -82,8 +86,24 @@ class PluginMark:
         return self.viewer.hub
 
     def update_xy(self, x, y):
+        # If x and y are not in the previous units, they should be provided as quantities
+        if hasattr(x, 'value'):
+            xunit = x.unit
+            x = x.value
+        else:
+            xunit = None
         self.x = np.asarray(x)
+        if xunit is not None:
+            self.xunit = u.Unit(xunit)
+
+        if hasattr(y, 'value'):
+            yunit = y.unit
+            y = y.value
+        else:
+            yunit = None
         self.y = np.asarray(y)
+        if yunit is not None:
+            self.yunit = u.Unit(yunit)
 
     def append_xy(self, x, y):
         self.x = np.append(self.x, x)
@@ -111,14 +131,16 @@ class PluginMark:
 
         if self.yunit is not None and not np.all([s == 0 for s in self.y.shape]):
             if self.viewer.default_class is Spectrum1D:
+
                 spec = self.viewer.state.reference_data.get_object(cls=Spectrum1D)
-                eqv = u.spectral_density(spec.spectral_axis)
-                if ('_pixel_scale_factor' in spec.meta):
-                    eqv += _eqv_pixar_sr(spec.meta['_pixel_scale_factor'])
-                    y = (self.y * self.yunit).to_value(unit, equivalencies=eqv)
-            else:
-                y = (self.y * self.yunit).to_value(unit)
-            self.yunit = unit
+
+                pixar_sr = spec.meta.get('PIXAR_SR', 1)
+                cube_wave = self.x * self.xunit
+                equivs = all_flux_unit_conversion_equivs(pixar_sr, cube_wave)
+
+                y = flux_conversion_general(self.y, self.yunit, unit, equivs,
+                                            with_unit=False)
+
             self.y = y
 
         self.yunit = unit
@@ -127,7 +149,7 @@ class PluginMark:
         if not self.auto_update_units:
             return
         if self.viewer.__class__.__name__ in ['SpecvizProfileView', 'CubevizProfileView']:
-            axis_map = {'spectral': 'x', 'flux': 'y'}
+            axis_map = {'spectral': 'x', 'spectral_y': 'y'}
         elif self.viewer.__class__.__name__ == 'MosvizProfile2DView':
             axis_map = {'spectral': 'x'}
         else:
@@ -158,8 +180,10 @@ class BaseSpectrumVerticalLine(Lines, PluginMark, HubListener):
                          **kwargs)
 
     def _update_reference_data(self, reference_data):
-        if reference_data is None:
+        # don't update x units before initialization or in rampviz
+        if reference_data is None or self.viewer.jdaviz_app.config == 'rampviz':
             return
+
         self._update_unit(reference_data.get_object(cls=Spectrum1D).spectral_axis.unit)
 
     def _update_unit(self, new_unit):
@@ -538,6 +562,7 @@ class PluginLine(Lines, PluginMark, HubListener):
         self.viewer = viewer
         # color is same blue as import button
         kwargs.setdefault('colors', [accent_color])
+        self.label = kwargs.get('label')
         super().__init__(x=x, y=y, scales=kwargs.pop('scales', viewer.scales), **kwargs)
 
 
@@ -551,10 +576,10 @@ class PluginScatter(Scatter, PluginMark, HubListener):
 
 class LineAnalysisContinuum(PluginLine):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         # units do not need to be updated because the plugin itself reruns
         # the computation and automatically changes the arrays themselves
-        self.auto_update_units = False
+        self.auto_update_units = kwargs.pop('auto_update_units', False)
+        super().__init__(*args, **kwargs)
 
 
 class LineAnalysisContinuumCenter(LineAnalysisContinuum):
@@ -589,6 +614,12 @@ class SelectedSpaxel(Lines):
 
 
 class MarkersMark(PluginScatter):
+    def __init__(self, viewer, **kwargs):
+        kwargs.setdefault('marker', 'circle')
+        super().__init__(viewer, **kwargs)
+
+
+class CatalogMark(PluginScatter):
     def __init__(self, viewer, **kwargs):
         kwargs.setdefault('marker', 'circle')
         super().__init__(viewer, **kwargs)

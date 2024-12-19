@@ -16,6 +16,7 @@ from glue.core.message import SubsetCreateMessage, SubsetDeleteMessage, SubsetUp
 
 from jdaviz.core.events import AddDataMessage, SnackbarMessage
 from jdaviz.core.user_api import PluginUserApi
+
 from specutils import Spectrum1D
 from astropy import units as u
 from astropy.nddata import CCDData
@@ -115,6 +116,9 @@ class Export(PluginTemplateMixin, ViewerSelectMixin, SubsetSelectMixin,
                                       'filename_auto',
                                       'filename_invalid_msg')
 
+        # description displayed under plugin title in tray
+        self._plugin_description = 'Export data/plots and other outputs to a file.'
+
         # NOTE: if adding export support for non-plugin products, also update the language
         # in the UI as well as in _set_dataset_not_supported_msg
         self.dataset.filters = ['is_not_wcs_only', 'not_child_layer',
@@ -190,8 +194,6 @@ class Export(PluginTemplateMixin, ViewerSelectMixin, SubsetSelectMixin,
     def user_api(self):
         # TODO: backwards compat for save_figure, save_movie,
         # i_start, i_end, movie_fps, movie_filename
-        # TODO: expose export method once API is finalized
-        # is the above comment still needed or can it be removed?
         expose = ['viewer', 'viewer_format',
                   'dataset', 'dataset_format',
                   'subset', 'subset_format',
@@ -728,12 +730,12 @@ class Export(PluginTemplateMixin, ViewerSelectMixin, SubsetSelectMixin,
         """
 
         # type of region saved depends on link type
-        link_type = getattr(self.app, '_link_type', None)
+        align_by = getattr(self.app, '_align_by', None)
 
         region = self.app.get_subsets(subset_name=selected_subset_label,
-                                      include_sky_region=link_type == 'wcs')
+                                      include_sky_region=align_by == 'wcs')
 
-        region = region[0][f'{"sky_" if link_type == "wcs" else ""}region']
+        region = region[0][f'{"sky_" if align_by == "wcs" else ""}region']
 
         region.write(str(filename), overwrite=True)
 
